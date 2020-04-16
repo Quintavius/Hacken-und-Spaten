@@ -40,9 +40,6 @@ public class Character : MonoBehaviour
     // Gravity
     private bool grounded;
     private Vector3 currentGravity;
-    private Vector3 raycastFloorPos;
-    private Vector3 floorMovement;
-    private Vector3 combinedRaycast;
 
     #endregion
 
@@ -60,40 +57,40 @@ public class Character : MonoBehaviour
             transform.rotation = rot;
         }
 
-
         ProcessInput();
         CorrectDirections();
 
     }
 
+    private Vector3 floorSnapPosition;
     void FixedUpdate()
     {
         // 1 Figure out if grounded
-        grounded = FloorRaycasts(0, 0, rayLengthGroundedCheck) != Vector3.zero;
+        grounded = FindFloorPosition(0, 0, rayLengthGroundedCheck) != Vector3.zero;
 
-        // 2 if not, figure out current downward force
-        // 3 if grounded, set y to averaged floor
-        // 4 apply all forces
-        // if not grounded, add gravity
+
+   // if not grounded, add gravity
         if (!grounded)
         {
             currentGravity += Vector3.up * gravityStrength * Time.fixedDeltaTime;
         }
 
-        // combine flat movement with gravity plus jump
-        Vector3 jumpStrength = isJumping ? Vector3.up * 4 : Vector3.zero;
+                // combine flat movement with gravity plus jump
+        Vector3 jumpStrength = isJumping ? Vector3.up * 40 : Vector3.zero;
         rb.velocity = (moveDirection * moveSpeed) + currentGravity + jumpStrength;
 
-        // find desired Y position via cursed raycasts
-        floorMovement = new Vector3(rb.position.x, FindFloor().y, rb.position.z);
-
+        // 2 if not, figure out current downward force
+        // 3 if grounded, set y to averaged floor
+        // 4 apply all forces
+                // find desired Y position via cursed raycasts
+        floorSnapPosition = FindAverageFloorPosition();
         // if we're grounded, stick to floor
-        if (grounded && floorMovement != rb.position)
+        if (grounded && floorSnapPosition != rb.position)
         {
             // snap to floor
-            rb.MovePosition(floorMovement);
+            rb.MovePosition(new Vector3(rb.position.x, floorSnapPosition.y, rb.position.z));
             currentGravity.y = 0;
-        }
+        }        
     }
 
     void ProcessInput()
@@ -122,39 +119,29 @@ public class Character : MonoBehaviour
         moveDirection = new Vector3(combinedInput.normalized.x, 0, combinedInput.normalized.z);
     }
 
-    private int floorAverage = 1;
-    Vector3 FindFloor()
+    private Vector3 floorAverage;
+    Vector3 FindAverageFloorPosition()
     {
-        floorAverage = 1;
-        combinedRaycast = FloorRaycasts(0, 0, rayLengthAverageCheck);
-        floorAverage += (
-            getFloorAverage(raycastWidth, 0) +
-            getFloorAverage(-raycastWidth, 0) +
-            getFloorAverage(0, raycastWidth) +
-            getFloorAverage(0, -raycastWidth)
+        floorAverage = (
+            FindFloorPosition(0, 0, rayLengthGroundedCheck + 0.2f) +
+            FindFloorPosition(raycastWidth, 0, rayLengthGroundedCheck + 0.2f) +
+            FindFloorPosition(-raycastWidth, 0, rayLengthGroundedCheck + 0.2f) +
+            FindFloorPosition(0, raycastWidth, rayLengthGroundedCheck + 0.2f) +
+            FindFloorPosition(0, -raycastWidth, rayLengthGroundedCheck + 0.2f)
         );
 
-        return combinedRaycast / floorAverage;
+        return floorAverage / 5;
     }
 
-    int getFloorAverage(float offsetx, float offsetz)
-    {
-        if (FloorRaycasts(offsetx, offsetz, 1) != Vector3.zero)
-        {
-            combinedRaycast += FloorRaycasts(offsetx, offsetz, rayLengthAverageCheck);
-            return 1;
-        }
-        else { return 0; }
-    }
-
-    // Returns position of floor
-    Vector3 FloorRaycasts(float offsetx, float offsetz, float raycastLength)
+    // Returns position of floor or 0 if no floor found
+    Vector3 origin;
+    Vector3 FindFloorPosition(float offsetx, float offsetz, float raycastLength)
     {
         RaycastHit hit;
-        raycastFloorPos = transform.TransformPoint(0 + offsetx, 0 + floorRaycastOrigin, 0 + offsetz);
+        origin = new Vector3(rb.position.x + offsetx, rb.position.y + floorRaycastOrigin, rb.position.z + offsetz);
 
-        Debug.DrawRay(raycastFloorPos, Vector3.down, Color.magenta);
-        if (Physics.Raycast(raycastFloorPos, Vector3.down, out hit, raycastLength))
+        Debug.DrawRay(origin, Vector3.down, Color.magenta);
+        if (Physics.Raycast(origin, Vector3.down, out hit, raycastLength))
         {
             return hit.point;
         }
