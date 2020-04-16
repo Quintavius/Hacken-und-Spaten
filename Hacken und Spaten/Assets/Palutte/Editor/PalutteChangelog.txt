@@ -1,0 +1,22 @@
+19/Aug/2018:
+ - Support for 2D grid LUTs (default is now 16x16 instead of 16x1)
+ - fixed ugly colour clipping between LUT grid levels
+ - Generator keeps working even when unity loses focus (tho it is slower than with focus)
+ - Generator progress bar shows more progress (it's easier to cancel if you see it chugging)
+ - Generator refreshes project view, & sets correct import settings, when saving a new LUT image
+ - "DithLutImageEffect" is now just "PalutteEffect"
+ - can have pixel height auto-set, not just width
+ - Option to squash/stretch pixels when automatically setting height/width
+ - PalutteEffect component now has custom inspector
+ - Can set LUT grid dimensions through PalutteEffect component
+ - some shader optimisations
+
+18/Aug/2018:
+ - jaggy preference
+ - can have pixel width auto-set
+ 
+02/Aug/2018:
+ - LUT generator is now an editor window, not an awkward game scene
+
+01/Aug/2018:
+ - First Release
